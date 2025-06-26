@@ -17,7 +17,8 @@ import HiwonderSDK.Misc as Misc
 import HiwonderSDK.Board as Board
 import HiwonderSDK.mecanum as mecanum
 from HiwonderSDK.PID import PID
-import pandas as pd
+#import pandas as pd
+#^we dont have pandas and we dont need em
 
 
 # initialization
@@ -68,7 +69,16 @@ def servo_init():
 
     # TODO 1. set the PWM of the Servos appropriately to position arm for line-tracking, use Board.setPWMServoPulse() 
     # /.....enter code here...../
-
+    Board.setPWMServoPulse(1, 2500, 1000)
+    time.sleep(1)
+    Board.setPWMServoPulse(3, -600, 1000)
+    time.sleep(1)
+    Board.setPWMServoPulse(4, 2800, 1000)
+    time.sleep(1)
+    Board.setPWMServoPulse(5, 1000, 1000)
+    time.sleep(1)
+    Board.setPWMServoPulse(6, 500, 1000)
+    time.sleep(1)
 
 # Set the detection color
 def setTargetColor(target_color):
