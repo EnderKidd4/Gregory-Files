@@ -159,10 +159,10 @@ def MotorStop():
     Board.setMotor(4, 0)
 
 def SetMotors(speed):
-    Board.setMotor(1, speed[1]) 
-    Board.setMotor(2, speed[2])
-    Board.setMotor(3, speed[3])
-    Board.setMotor(4, speed[4])
+    Board.setMotor(1, speed[0]) 
+    Board.setMotor(2, speed[1])
+    Board.setMotor(3, speed[2])
+    Board.setMotor(4, speed[3])
 
 
 #Close before processing
@@ -215,7 +215,11 @@ def move():
                 base_speed = Misc.map(tmp, -100, 100, -40, 40)  # Speed ​​mapping
 
                 # TODO 2. Given the base_speed from pid controller, Set motor speeds for motor 1, 2, 3 and 4, use  Board.setMotor()
-                SetMotors(base_speed)
+                Board.setMotor(1, int(speed[0])) 
+                Board.setMotor(2, int(speed[1]))
+                Board.setMotor(3, int(speed[2]))
+                Board.setMotor(4, int(speed[3]))
+
                 
             else:
                 MotorStop()
@@ -353,9 +357,9 @@ def run(img, __target_color):
         distance = np.mean(distance_data)
 
         # TODO 4. Using measured distance value, write code to stop motors and change obstacle flag to true when obstacle is within certain threshold
-        if distance <= threshold:
+        if distance <= Threshold:
             MotorStop()
-            obstacle = true
+            obstacle = True
         
 
         time.sleep(0.03)
