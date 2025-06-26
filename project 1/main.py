@@ -220,16 +220,23 @@ def move():
 
 
                     # TODO 3. Obstacle avoidance routine
+                    # move left (11 cm)
+                    SetMotors([-20, 20, -20, 20])
+                    time.sleep(4)
+                    MotorStop()
+                    time.sleep(1.5)
 
-                    # move left
-                    # /.....enter code here...../
+                    # move forward (4 cm)
+                    SetMotors([20, 20, 20, 20])
                     time.sleep(1.5)
-                    # move forward
-                    # /.....enter code here...../
+                    MotorStop()
                     time.sleep(1.5)
-                    # move right
-                    # /.....enter code here...../
-                    time.sleep(1.5)
+
+                    # move right (11 cm)
+                    SetMotors([20, -20, 20, -20])
+                    time.sleep(4)
+                    MotorStop()
+                    
                     print("complete, now turning off motors\n")
                     chassis.set_velocity(0,0,0)  # Turn off all motors
 
