@@ -68,7 +68,7 @@ if sys.version_info.major == 2:
 def servo_init():
 
     # TODO 1. set the PWM of the Servos appropriately to position arm for line-tracking, use Board.setPWMServoPulse() 
-    # /.....enter code here...../
+    # Angle Servos to have camera point down towards line
     Board.setPWMServoPulse(1, 2500, 1000)
     time.sleep(0.2)
     Board.setPWMServoPulse(3, -600, 1000)
@@ -158,6 +158,7 @@ def MotorStop():
     Board.setMotor(3, 0)
     Board.setMotor(4, 0)
 
+# Set motor speed from array (+-100)
 def SetMotors(speed):
     Board.setMotor(1, speed[0]) 
     Board.setMotor(2, speed[1])
@@ -213,8 +214,8 @@ def move():
                 tmp = 100 if tmp > 100 else tmp   
                 tmp = -100 if tmp < -100 else tmp
                 base_speed = Misc.map(tmp, -100, 100, -40, 40)  # Speed ​​mapping
-                # print(base_speed)
-                
+                # Adjust motor output from fowards speed (50) based off of pid result
+                # Multiplied base_speed*2 to make line tracking more agressive
                 SetMotors([int(-50 - base_speed*2), int(50 + base_speed*2), int(50 - base_speed*2),int(-50 + base_speed*2)])
                 
             else:
@@ -230,19 +231,19 @@ def move():
 
 
                     # TODO 3. Obstacle avoidance routine
-                    # move left (11 cm)
+                    # move left
                     SetMotors([50, 50, 50, 50])
                     time.sleep(0.75)
                     MotorStop()
                     time.sleep(0.5)
 
-                    # move forward (4 cm)
+                    # move forward 
                     SetMotors([-50, 50, 50, -50])
                     time.sleep(1.5)
                     MotorStop()
                     time.sleep(0.5)
 
-                    # move right (11 cm)
+                    # move right
                     SetMotors([-50, -50, -50, -50])
                     time.sleep(1)
                     MotorStop()
