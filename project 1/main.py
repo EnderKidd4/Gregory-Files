@@ -354,7 +354,7 @@ def run(img, __target_color):
         time.sleep(0.03)
 
         img = line_tracking(img,__target_color)
-
+        cv2.imshow("Display window", img)
         return img
 
 
