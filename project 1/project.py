@@ -77,7 +77,7 @@ def servo_init():
     time.sleep(1)
     Board.setPWMServoPulse(5, 1000, 1000)
     time.sleep(1)
-    Board.setPWMServoPulse(6, 500, 1000)
+    Board.setPWMServoPulse(6, 1500, 1000)
     time.sleep(1)
 
 # Set the detection color
@@ -213,17 +213,14 @@ def move():
                 tmp = 100 if tmp > 100 else tmp   
                 tmp = -100 if tmp < -100 else tmp
                 base_speed = Misc.map(tmp, -100, 100, -40, 40)  # Speed ​​mapping
-
-                # TODO 2. Given the base_speed from pid controller, Set motor speeds for motor 1, 2, 3 and 4, use  Board.setMotor()
-                Board.setMotor(1, int(base_speed[0])) 
-                Board.setMotor(2, int(base_speed[1]))
-                Board.setMotor(3, int(base_speed[2]))
-                Board.setMotor(4, int(base_speed[3]))
-
+                # print(base_speed)
+                
+                chassis.set_velocity(0, 1 ,0)
+                # SetMotors([int(base_speed*5), int(-base_speed*5), int(-base_speed*5),int(base_speed*5)])
                 
             else:
                 MotorStop()
-
+            
                 if obstacle:
 
                     time.sleep(0.01)
@@ -388,7 +385,7 @@ if __name__ == '__main__':
             frame = img.copy()
             Frame = run(frame, __target_color)  
             frame_resize = cv2.resize(Frame, (320, 240))
-            cv2.imshow('frame', frame_resize)
+            # cv2.imshow('frame', frame_resize)
             key = cv2.waitKey(1)
             if key == 27:
                 break
