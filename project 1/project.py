@@ -70,15 +70,15 @@ def servo_init():
     # TODO 1. set the PWM of the Servos appropriately to position arm for line-tracking, use Board.setPWMServoPulse() 
     # /.....enter code here...../
     Board.setPWMServoPulse(1, 2500, 1000)
-    time.sleep(1)
+    time.sleep(0.2)
     Board.setPWMServoPulse(3, -600, 1000)
-    time.sleep(1)
+    time.sleep(0.2)
     Board.setPWMServoPulse(4, 2800, 1000)
-    time.sleep(1)
-    Board.setPWMServoPulse(5, 1000, 1000)
-    time.sleep(1)
+    time.sleep(0.2)
+    Board.setPWMServoPulse(5, 1250, 1000)
+    time.sleep(0.2)
     Board.setPWMServoPulse(6, 1500, 1000)
-    time.sleep(1)
+    time.sleep(0.2)
 
 # Set the detection color
 def setTargetColor(target_color):
@@ -215,8 +215,7 @@ def move():
                 base_speed = Misc.map(tmp, -100, 100, -40, 40)  # Speed ​​mapping
                 # print(base_speed)
                 
-                chassis.set_velocity(0, 1 ,0)
-                # SetMotors([int(base_speed*5), int(-base_speed*5), int(-base_speed*5),int(base_speed*5)])
+                SetMotors([int(-50 - base_speed*2), int(50 + base_speed*2), int(50 - base_speed*2),int(-50 + base_speed*2)])
                 
             else:
                 MotorStop()
@@ -232,20 +231,20 @@ def move():
 
                     # TODO 3. Obstacle avoidance routine
                     # move left (11 cm)
-                    SetMotors([-20, 20, -20, 20])
-                    time.sleep(4)
+                    SetMotors([50, 50, 50, 50])
+                    time.sleep(0.75)
                     MotorStop()
-                    time.sleep(1.5)
+                    time.sleep(0.5)
 
                     # move forward (4 cm)
-                    SetMotors([20, 20, 20, 20])
+                    SetMotors([-50, 50, 50, -50])
                     time.sleep(1.5)
                     MotorStop()
-                    time.sleep(1.5)
+                    time.sleep(0.5)
 
                     # move right (11 cm)
-                    SetMotors([20, -20, 20, -20])
-                    time.sleep(4)
+                    SetMotors([-50, -50, -50, -50])
+                    time.sleep(1)
                     MotorStop()
                     
                     print("complete, now turning off motors\n")
@@ -355,7 +354,6 @@ def run(img, __target_color):
 
         # TODO 4. Using measured distance value, write code to stop motors and change obstacle flag to true when obstacle is within certain threshold
         if distance <= Threshold:
-            MotorStop()
             obstacle = True
         
 
