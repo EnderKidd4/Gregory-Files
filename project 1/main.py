@@ -17,7 +17,7 @@ import HiwonderSDK.Misc as Misc
 import HiwonderSDK.Board as Board
 import HiwonderSDK.mecanum as mecanum
 from HiwonderSDK.PID import PID
-import pandas as pd
+#import pandas as pd
 
 
 # initialization
@@ -344,7 +344,7 @@ def run(img, __target_color):
         time.sleep(0.03)
 
         img = line_tracking(img,__target_color)
-
+        cv2.imshow("Display window", img)
         return img
 
 
