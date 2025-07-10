@@ -157,10 +157,10 @@ def move():
     
     # Place coordinates
     coordinate = {
-        'circle':   (18, 9, -1),
-        'triangle': (-18, 9,  -1),
-        'square':  (-18, 9, -1),
-        'pick': (0, 18, -2)
+        'circle':   (15, 10, 2),
+        'triangle': (15, 10,  2),
+        'square':  (-15, 10, 2),
+        'pick': (0, 18, 0)
     }
     
     while True:
