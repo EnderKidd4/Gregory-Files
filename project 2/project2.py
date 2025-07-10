@@ -288,6 +288,11 @@ def run(img):
     # TODO 2, using cv2.findContours(), cv2.cvtColor(), cv2.GaussianBlur() find the contours
     # /.....enter code here...../ (use the code from section 1 of this project if completed beforehand)
     
+    blur = cv2.GaussianBlur(img, (5,5), 0)
+    imgray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
+    ret, thresh = cv2.threshold(imgray, 127, 255, cv2.THRESH_BINARY_INV)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
     cnt_large, area = getAreaMaxContour(contours)
 
     if cnt_large is not None and start_pick_up is not True:
