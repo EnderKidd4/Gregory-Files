@@ -154,12 +154,13 @@ def move():
     #for example 'circle': (x,y,z)
     #Set appropriately as well the coordinates for where the robot should pick the object
 
+    
     # Place coordinates
     coordinate = {
-        'circle':   (15, 9, 2),
-        'triangle': (-15, 9,  2),
-        'square':  (-15, 0, 2),
-        'pick': (0, 18, 0)
+        'circle':   (18, 9, -1),
+        'triangle': (-18, 9,  -1),
+        'square':  (-18, 9, -1),
+        'pick': (0, 18, -2)
     }
     
     while True:
