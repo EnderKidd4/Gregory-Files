@@ -304,13 +304,27 @@ def run(img):
 
             # TODO 3, using the length of the variable approx, obtained from cv2.approxPloyDP, 
             #assign variable shape as either; shape ="triangle", shape="square" or shape="circle"
-
-            start_pick_up = True
-
+            
+            #the length of approx gives the number of sides of the shape. in the unlikely event the shape is
+            #not one of the expected shapes, let the user know
+            if len(approx) == 3:
+                shape = 'triangle'
+            elif len(approx) == 4:
+                shape = 'square'
+            elif len(approx) >= 6:
+                shape = 'circle'
+            else:
+                print('unidentified shape :c')
+            
+        #fixed indentation as suggested
         if shape in __target_shape:
             detect_shape = shape
+            start_pick_up = True
+        else:
+            shape = 'unidentified'
+            start_pick_up = False
             
-            cv2.drawContours(img, [approx], 0, (0, 255, 0), 5) 
+        cv2.drawContours(img, [approx], 0, (0, 255, 0), 5) 
         
         # increase count
         count = count + 1
