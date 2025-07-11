@@ -1,4 +1,4 @@
-# extra task: while moving stop the shape detection 
+# extra task: while moving stop the shape detection
 #!/usr/bin/python3
 # coding=utf8
 import sys
@@ -53,11 +53,11 @@ servo1 = 1500
 def initMove():
     Board.setPWMServoPulse(1, 2500, 300)
     time.sleep(0.5)
-    Board.setPWMServoPulse(3, 900, 500) 
+    Board.setPWMServoPulse(3, 900, 500)
     time.sleep(0.5)
-    Board.setPWMServoPulse(4, 2200, 500) 
+    Board.setPWMServoPulse(4, 2200, 500)
     time.sleep(0.5)
-    Board.setPWMServoPulse(5, 1950, 500) 
+    Board.setPWMServoPulse(5, 1950, 500)
     time.sleep(1)
     Board.setPWMServoPulse(6, 1500, 500)
     time.sleep(1)
@@ -104,7 +104,7 @@ def init():
     # The light is turned off by default after the ultrasonic wave is turned on
     HWSONAR.setRGBMode(0)
     HWSONAR.setPixelColor(0, Board.PixelColor(0,0,0))
-    HWSONAR.setPixelColor(1, Board.PixelColor(0,0,0))    
+    HWSONAR.setPixelColor(1, Board.PixelColor(0,0,0))
     HWSONAR.show()
     initMove()
 
@@ -134,8 +134,9 @@ def exit():
 rect = None
 size = (640, 480)
 rotation_angle = 0
-unreachable = False 
+unreachable = False
 world_X, world_Y = 0, 0
+inMotion = False
 
 def move():
     global count
@@ -143,6 +144,7 @@ def move():
     global _stop
     global get_roi
     global unreachable
+    global inMotion
     global __isRunning
     global detect_shape
     global start_pick_up
@@ -154,7 +156,7 @@ def move():
     #for example 'circle': (x,y,z)
     #Set appropriately as well the coordinates for where the robot should pick the object
 
-    
+
     # Place coordinates
     coordinate = {
         'circle':   (15, 10, 2),
@@ -162,29 +164,31 @@ def move():
         'square':  (-15, 10, 2),
         'pick': (0, 18, 0)
     }
-    
+
     while True:
-        if __isRunning:        
+        if __isRunning:
             if detect_shape != 'unidentified' and start_pick_up:  # If a shape is detected, start clamping
-                
+
+                inMotion = True
+
                 setBuzzer(0.1)     # Set the buzzer to sound for 0.1 seconds
-                
+
                 if not __isRunning:  # Check whether to stop playing
                     continue
                 Board.setPWMServoPulse(1, 2000, 500) # Open claws
                 time.sleep(1)
                 if not __isRunning:
                     continue
-                    
+
                 result = AK.setPitchRangeMoving((coordinate['pick'][0], coordinate['pick'][1], coordinate['pick'][2]), -25, 0, 25) # Run to above the coordinates
-                
+
                 if result == False:
                     unreachable = True
                     print("Unreachable\n")
                 else:
                     unreachable = False
                     time.sleep(result[2] / 1000) #If the specified location can be reached, get the running time
-                    
+
                     # 2nd trial
                 if unreachable:
                     result = AK.setPitchRangeMoving((coordinate['pick'][0], coordinate['pick'][1], coordinate['pick'][2]), -25, 0, 25) # Run to above the coordinates
@@ -195,13 +199,13 @@ def move():
                     # Motion in between picks, elevate arm
                 AK.setPitchRangeMoving((0, 7, 18), -90, -90, 90, 1500)
                 time.sleep(1.5)
-                
+
 
                 if not __isRunning:
                     continue
                 if detect_shape == 'circle':       # According to the detected shape, the robot arm rotates to the corresponding angle
-                    
-                    result = AK.setPitchRangeMoving((coordinate['circle'][0], coordinate['circle'][1], coordinate['circle'][2]), -180, -90, 180) 
+
+                    result = AK.setPitchRangeMoving((coordinate['circle'][0], coordinate['circle'][1], coordinate['circle'][2]), -180, -90, 180)
                     if result == False:
                         unreachable = True
                         print("Unreachable\n")
@@ -214,8 +218,8 @@ def move():
                     time.sleep(1)
 
                 elif detect_shape == 'triangle':
-                    
-                    result = AK.setPitchRangeMoving((coordinate['triangle'][0], coordinate['triangle'][1], coordinate['triangle'][2]), -180, -90, 180) 
+
+                    result = AK.setPitchRangeMoving((coordinate['triangle'][0], coordinate['triangle'][1], coordinate['triangle'][2]), -180, -90, 180)
                     if result == False:
                         unreachable = True
                         print("Unreachable\n")
@@ -229,7 +233,7 @@ def move():
 
                 elif detect_shape == 'square':
 
-                    result = AK.setPitchRangeMoving((coordinate['square'][0], coordinate['square'][1], coordinate['square'][2]), -180, -90, 180) 
+                    result = AK.setPitchRangeMoving((coordinate['square'][0], coordinate['square'][1], coordinate['square'][2]), -180, -90, 180)
                     if result == False:
                         unreachable = True
                         print("Unreachable\n")
@@ -239,20 +243,21 @@ def move():
                     # 2nd trial
                     if unreachable:
                         result = AK.setPitchRangeMoving((coordinate['square'][0], coordinate['square'][1], coordinate['square'][2]), -180, -90, 180)
-                    
+
                     time.sleep(1)
 
                 detect_shape = 'unidentified'
                 start_pick_up = False
                 count = 0
-                initMove()              
+                initMove()
+                inMotion = False
         else:
             time.sleep(0.01)
-          
+
 # Run child thread
 th = threading.Thread(target=move)
 th.setDaemon(True)
-th.start()    
+th.start()
 
 t1 = 0
 roi = ()
@@ -269,25 +274,27 @@ def run(img):
     global center_list
     global unreachable
     global __isRunning
+    global inMotion
     global start_pick_up
     global rotation_angle
     global last_x, last_y
     global world_X, world_Y
     global start_count_t1, t1
     global detect_shape, shape_list
-    
-    img_copy = img.copy()
-    img_h, img_w = img.shape[:2]   
 
-    if not __isRunning: # Check whether the gameplay is turned on, if not, return to the original image
+    img_copy = img.copy()
+    img_h, img_w = img.shape[:2]
+
+    print(inMotion)
+    if not __isRunning or inMotion: # Check whether the gameplay is turned on, if not, return to the original image
         return img
-    
-    
+
+
     frame_resize = cv2.resize(img_copy, size, interpolation=cv2.INTER_NEAREST)
 
     # TODO 2, using cv2.findContours(), cv2.cvtColor(), cv2.GaussianBlur() find the contours
     # /.....enter code here...../ (use the code from section 1 of this project if completed beforehand)
-    
+
     blur = cv2.GaussianBlur(img, (5,5), 0)
     imgray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(imgray, 127, 255, cv2.THRESH_BINARY_INV)
@@ -299,19 +306,19 @@ def run(img):
         approx = cv2.approxPolyDP(cnt_large, 0.04*cv2.arcLength(cnt_large, True), True)
         cv2.drawContours(img, [approx], 0, (0, 0, 0), 5)
 
-        M = cv2.moments(cnt_large) 
-        if M['m00'] != 0.0: 
-            x = int(M['m10']/M['m00']) 
+        M = cv2.moments(cnt_large)
+        if M['m00'] != 0.0:
+            x = int(M['m10']/M['m00'])
             y = int(M['m01']/M['m00'])
 
         shape = "unidentified"
 
         if (count > 100):
 
-            # TODO 3, using the length of the variable approx, obtained from cv2.approxPloyDP, 
+            # TODO 3, using the length of the variable approx, obtained from cv2.approxPloyDP,
             #assign variable shape as either; shape ="triangle", shape="square" or shape="circle"
-        
-            #the length of approx gives the number of vertices of the shape. in the unlikely event the shape is
+
+            #the length of approx gives the number of sides of the shape. in the unlikely event the shape is
             #not one of the expected shapes, let the user know
             if len(approx) == 3:
                 shape = 'triangle'
@@ -321,7 +328,7 @@ def run(img):
                 shape = 'circle'
             else:
                 print('unidentified shape :c')
-            
+
         #fixed indentation as suggested
         if shape in __target_shape:
             detect_shape = shape
@@ -329,9 +336,9 @@ def run(img):
         else:
             shape = 'unidentified'
             start_pick_up = False
-            
-        cv2.drawContours(img, [approx], 0, (0, 255, 0), 5) 
-        
+
+        cv2.drawContours(img, [approx], 0, (0, 255, 0), 5)
+
         # increase count
         count = count + 1
         print("count:\n")
@@ -353,7 +360,7 @@ if __name__ == '__main__':
         ret, img = cap.read()
         if ret:
             frame = img.copy()
-            Frame = run(frame)  
+            Frame = run(frame)
             frame_resize = cv2.resize(Frame, (320, 240))
             cv2.imshow('frame', frame_resize)
             key = cv2.waitKey(1)

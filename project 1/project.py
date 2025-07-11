@@ -1,67 +1,150 @@
-# extra task: while moving stop the shape detection
 #!/usr/bin/python3
 # coding=utf8
 import sys
-sys.path.append('/home/pi/mse112-ws-student/MasterPi/')
+sys.path.append('/home/pi/mse112-ws-student/MasterPi//')
 import cv2
 import time
+import math
+import signal
 import Camera
 import threading
+import numpy as np
 import yaml_handle
 from ArmIK.Transform import *
 from ArmIK.ArmMoveIK import *
 import HiwonderSDK.Sonar as Sonar
+import HiwonderSDK.Misc as Misc
 import HiwonderSDK.Board as Board
-from CameraCalibration.CalibrationConfig import *
-import numpy as np
-import math
+import HiwonderSDK.mecanum as mecanum
+from HiwonderSDK.PID import PID
+#import pandas as pd
+#^we dont have pandas and we dont need em
 
+
+# initialization
+chassis = mecanum.MecanumChassis()
+AK = ArmIK()
+pitch_pid = PID(P=0.28, I=0.16, D=0.18)
+
+HWSONAR = Sonar.Sonar()
+distance = 0 
+
+range_rgb = {
+    'red': (0, 0, 255),
+    'blue': (255, 0, 0),
+    'green': (0, 255, 0),
+    'black': (0, 0, 0),
+    'white': (255, 255, 255),
+}
+img_centerx = 320
+# Variable for distance obstacle avoidance
+distance_data = []
+stopMotor = False
+Threshold = 10  # Set threshold for obstacle distance
+
+
+# line tracking
+roi = [ # [ROI, weight]
+        (240, 280,  0, 640, 0.1), 
+        (340, 380,  0, 640, 0.3), 
+        (430, 460,  0, 640, 0.6)
+       ]
+
+roi_h1 = roi[0][0]
+roi_h2 = roi[1][0] - roi[0][0]
+roi_h3 = roi[2][0] - roi[1][0]
+
+roi_h_list = [roi_h1, roi_h2, roi_h3]
+size = (640, 480)
+
+
+
+
+# Line patrol
 if sys.version_info.major == 2:
     print('Please run this program with python3!')
     sys.exit(0)
 
-AK = ArmIK()
-HWSONAR = Sonar.Sonar() #Ultrasonic Sensor
+def servo_init():
 
-__target_shape = ('circle', 'triangle', 'square')
+    # TODO 1. set the PWM of the Servos appropriately to position arm for line-tracking, use Board.setPWMServoPulse() 
+    # Angle Servos to have camera point down towards line
+    Board.setPWMServoPulse(1, 2500, 1000)
+    time.sleep(0.2)
+    Board.setPWMServoPulse(3, -600, 1000)
+    time.sleep(0.2)
+    Board.setPWMServoPulse(4, 2800, 1000)
+    time.sleep(0.2)
+    Board.setPWMServoPulse(5, 1250, 1000)
+    time.sleep(0.2)
+    Board.setPWMServoPulse(6, 1500, 1000)
+    time.sleep(0.2)
 
-def setTargetShape(target_shape):
-    global __target_shape
-    print("SHAPE", target_shape)
-    __target_shape = target_shape
+# Set the detection color
+def setTargetColor(target_color):
+    global __target_color
+
+    print("COLOR", target_color)
+    __target_color = target_color
     return (True, ())
 
-# Find the contour with the largest area
-def getAreaMaxContour(contours):
-    contour_area_temp = 0
-    contour_area_max = 0
-    area_max_contour = None
+lab_data = None
 
-    for c in contours: #Go through all contours
-        contour_area_temp = math.fabs(cv2.contourArea(c))  # Calculate the contour area
-        if contour_area_temp > contour_area_max:
-            contour_area_max = contour_area_temp
-            if contour_area_temp > 300:  # The contour of the largest area is valid only when the area is greater than 300 to filter out interference
-                area_max_contour = c
+def load_config():
+    global lab_data
+    lab_data = yaml_handle.get_yaml_data(yaml_handle.lab_file_path)
 
-    return area_max_contour, contour_area_max  # Return the largest contour
-
-# The closing angle of the gripper when gripping
-servo1 = 1500
-
-# Initial position
+# initial position
 def initMove():
-    Board.setPWMServoPulse(1, 2500, 300)
-    time.sleep(0.5)
-    Board.setPWMServoPulse(3, 900, 500)
-    time.sleep(0.5)
-    Board.setPWMServoPulse(4, 2200, 500)
-    time.sleep(0.5)
-    Board.setPWMServoPulse(5, 1950, 500)
-    time.sleep(1)
-    Board.setPWMServoPulse(6, 1500, 500)
-    time.sleep(1)
-    Board.setPWMServoPulse(6, 1500, 500)
+    servo_init()
+    MotorStop()
+    
+line_centerx = -1
+# Variable reset
+def reset():
+    global line_centerx
+    global __target_color
+    
+    line_centerx = -1
+    __target_color = ()
+    
+# app initialization call
+def init():
+    print("VisualPatrol Init")
+    load_config()
+    initMove()
+
+__isRunning = False
+# app starts playing method call
+def start():
+    reset()
+
+    global __isRunning
+    global stopMotor
+    global forward
+    global turn
+    global obstacle
+    obstacle = False
+    turn = True
+    forward = True
+    stopMotor = True
+    __isRunning = True
+
+    print("Line tracker 1.1 Start")
+
+# app stops playing method calls
+def stop():
+    global __isRunning
+    __isRunning = False
+    MotorStop()
+    print("Line tracker 1.1 Stop")
+
+# app exit gameplay call
+def exit():
+    global __isRunning
+    __isRunning = False
+    MotorStop()
+    print("Line tracker 1.1 Exit")
 
 def setBuzzer(timer):
     Board.setBuzzer(0)
@@ -69,293 +152,239 @@ def setBuzzer(timer):
     time.sleep(timer)
     Board.setBuzzer(0)
 
-count = 0
-_stop = False
-shape_list = []
-get_roi = False
-__isRunning = False
-detect_shape = 'unidentified'
-start_pick_up = False
-start_count_t1 = True
+def MotorStop():
+    Board.setMotor(1, 0) 
+    Board.setMotor(2, 0)
+    Board.setMotor(3, 0)
+    Board.setMotor(4, 0)
 
-# Variable reset
-def reset():
-    global _stop
-    global count
-    global get_roi
-    global shape_list
-    global detect_shape
-    global start_pick_up
-    global __target_shape
-    global start_count_t1
+# Set motor speed from array (+-100)
+def SetMotors(speed):
+    Board.setMotor(1, speed[0]) 
+    Board.setMotor(2, speed[1])
+    Board.setMotor(3, speed[2])
+    Board.setMotor(4, speed[3])
 
-    count = 0
-    _stop = False
-    shape_list = []
-    get_roi = False
-    __target_shape = ()
-    detect_shape = 'unidentified'
-    start_pick_up = False
-    start_count_t1 = True
 
-# App initialization call
-def init():
-    print("ShapeSorting Init")
-    # The light is turned off by default after the ultrasonic wave is turned on
-    HWSONAR.setRGBMode(0)
-    HWSONAR.setPixelColor(0, Board.PixelColor(0,0,0))
-    HWSONAR.setPixelColor(1, Board.PixelColor(0,0,0))
-    HWSONAR.show()
-    initMove()
-
-# App starts playing method call
-def start():
+#Close before processing
+def Stop(signum, frame):
     global __isRunning
-    reset()
-    __isRunning = True
-    print("ShapeSorting Start")
-
-# App stops playing method calls
-def stop():
-    global _stop
-    global __isRunning
-    _stop = True
+    
     __isRunning = False
-    print("ShapeSorting Stop")
+    print('Closing...')
+    MotorStop()  # Turn off all motors
 
-# App exit gameplay call
-def exit():
-    global _stop
-    global __isRunning
-    _stop = True
-    __isRunning = False
-    print("ShapeSorting Exit")
+    
+# Find the contour with the largest area
+# The parameter is a list of contours to be compared
+def getAreaMaxContour(contours):
+    contour_area_temp = 0
+    contour_area_max = 0
+    area_max_contour = None
 
-rect = None
-size = (640, 480)
-rotation_angle = 0
-unreachable = False
-world_X, world_Y = 0, 0
+    for c in contours:  # Iterate over all contours
+        contour_area_temp = math.fabs(cv2.contourArea(c))  # Calculate the contour area
+        if contour_area_temp > contour_area_max:
+            contour_area_max = contour_area_temp
+            if contour_area_temp >= 5:  # Only when the area is greater than 300, the contour of the largest area is valid to filter out interference
+                area_max_contour = c
+
+    return area_max_contour, contour_area_max  # Return the largest contour
+
+
 
 def move():
-    global count
-    global rect
-    global _stop
-    global get_roi
-    global unreachable
-    global __isRunning
-    global detect_shape
-    global start_pick_up
-    global rotation_angle
-    global world_X, world_Y
+   
+    global line_centerx
+    global obstacle
 
-
-    # TODO 1.0 Set the coordinates appropriately for where the robot should drop the detected objects
-    #for example 'circle': (x,y,z)
-    #Set appropriately as well the coordinates for where the robot should pick the object
-
-
-    # Place coordinates
-    coordinate = {
-        'circle':   (15, 10, 2),
-        'triangle': (15, 10,  2),
-        'square':  (-15, 10, 2),
-        'pick': (0, 18, 0)
-    }
-
+    i = 0
     while True:
+
         if __isRunning:
-            if detect_shape != 'unidentified' and start_pick_up:  # If a shape is detected, start clamping
-
-                setBuzzer(0.1)     # Set the buzzer to sound for 0.1 seconds
-
-                if not __isRunning:  # Check whether to stop playing
-                    continue
-                Board.setPWMServoPulse(1, 2000, 500) # Open claws
-                time.sleep(1)
-                if not __isRunning:
-                    continue
-
-                result = AK.setPitchRangeMoving((coordinate['pick'][0], coordinate['pick'][1], coordinate['pick'][2]), -25, 0, 25) # Run to above the coordinates
-
-                if result == False:
-                    unreachable = True
-                    print("Unreachable\n")
+            if line_centerx != -1 and not obstacle:
+                
+                num = (line_centerx - img_centerx)
+                if abs(num) <= 5:  # The deviation is small and no processing is performed
+                    pitch_pid.SetPoint = num
                 else:
-                    unreachable = False
-                    time.sleep(result[2] / 1000) #If the specified location can be reached, get the running time
+                    pitch_pid.SetPoint = 0
+                pitch_pid.update(num) 
+                tmp = pitch_pid.output    # Get PID output value
+                tmp = 100 if tmp > 100 else tmp   
+                tmp = -100 if tmp < -100 else tmp
+                base_speed = Misc.map(tmp, -100, 100, -40, 40)  # Speed ​​mapping
+                # Adjust motor output from fowards speed (50) based off of pid result
+                # Multiplied base_speed*2 to make line tracking more agressive
+                SetMotors([int(-50 - base_speed*2), int(50 + base_speed*2), int(50 - base_speed*2),int(-50 + base_speed*2)])
+                
+            else:
+                MotorStop()
+            
+                if obstacle:
 
-                    # 2nd trial
-                if unreachable:
-                    result = AK.setPitchRangeMoving((coordinate['pick'][0], coordinate['pick'][1], coordinate['pick'][2]), -25, 0, 25) # Run to above the coordinates
+                    time.sleep(0.01)
+                    # Pick
+                    print("Obstacle Avoidance Start\n")
 
-                Board.setPWMServoPulse(1, 1000, 500) # Close paw
-                time.sleep(1.5)
-
-                    # Motion in between picks, elevate arm
-                AK.setPitchRangeMoving((0, 7, 18), -90, -90, 90, 1500)
-                time.sleep(1.5)
+                    print("The obstacle distance is :\n")
 
 
-                if not __isRunning:
-                    continue
-                if detect_shape == 'circle':       # According to the detected shape, the robot arm rotates to the corresponding angle
+                    # TODO 3. Obstacle avoidance routine
+                    # move left
+                    SetMotors([50, 50, 50, 50])
+                    time.sleep(0.75)
+                    MotorStop()
+                    time.sleep(0.5)
 
-                    result = AK.setPitchRangeMoving((coordinate['circle'][0], coordinate['circle'][1], coordinate['circle'][2]), -180, -90, 180)
-                    if result == False:
-                        unreachable = True
-                        print("Unreachable\n")
-                    else:
-                        unreachable = False
-                        time.sleep(result[2] / 1000) #If the specified location can be reached, get the running time
-                    # 2nd trial
-                    if unreachable:
-                        result = AK.setPitchRangeMoving((coordinate['circle'][0], coordinate['circle'][1], coordinate['circle'][2]), -180, -90, 180)
+                    # move forward 
+                    SetMotors([-50, 50, 50, -50])
+                    time.sleep(1.5)
+                    MotorStop()
+                    time.sleep(0.5)
+
+                    # move right
+                    SetMotors([-50, -50, -50, -50])
                     time.sleep(1)
+                    MotorStop()
+                    
+                    print("complete, now turning off motors\n")
+                    chassis.set_velocity(0,0,0)  # Turn off all motors
 
-                elif detect_shape == 'triangle':
+                    obstacle = False
+                    print("Obstacle Avoidance End\n")
+                    time.sleep(1.5)
 
-                    result = AK.setPitchRangeMoving((coordinate['triangle'][0], coordinate['triangle'][1], coordinate['triangle'][2]), -180, -90, 180)
-                    if result == False:
-                        unreachable = True
-                        print("Unreachable\n")
-                    else:
-                        unreachable = False
-                        time.sleep(result[2] / 1000) #If the specified location can be reached, get the running time
-                    # 2nd trial
-                    if unreachable:
-                        result = AK.setPitchRangeMoving((coordinate['triangle'][0], coordinate['triangle'][1], coordinate['triangle'][2]), -180, -90, 180)
-                    time.sleep(1)
-
-                elif detect_shape == 'square':
-
-                    result = AK.setPitchRangeMoving((coordinate['square'][0], coordinate['square'][1], coordinate['square'][2]), -180, -90, 180)
-                    if result == False:
-                        unreachable = True
-                        print("Unreachable\n")
-                    else:
-                        unreachable = False
-                        time.sleep(result[2] / 1000) #If the specified location can be reached, get the running time
-                    # 2nd trial
-                    if unreachable:
-                        result = AK.setPitchRangeMoving((coordinate['square'][0], coordinate['square'][1], coordinate['square'][2]), -180, -90, 180)
-
-                    time.sleep(1)
-
-                detect_shape = 'unidentified'
-                start_pick_up = False
-                count = 0
-                initMove()
         else:
             time.sleep(0.01)
-
+ 
 # Run child thread
 th = threading.Thread(target=move)
 th.setDaemon(True)
 th.start()
 
-t1 = 0
-roi = ()
-center_list = []
-last_x, last_y = 0, 0
-length = 50
-w_start = 200
-h_start = 200
-def run(img):
-    global roi
-    global rect
-    global count
-    global get_roi
-    global center_list
-    global unreachable
-    global __isRunning
-    global start_pick_up
-    global rotation_angle
-    global last_x, last_y
-    global world_X, world_Y
-    global start_count_t1, t1
-    global detect_shape, shape_list
+def line_tracking (img, __target_color):
+    global line_centerx
 
+    # Camera line tracking
     img_copy = img.copy()
     img_h, img_w = img.shape[:2]
+    
+    if not __isRunning or __target_color == ():
+        return img
+     
+    frame_resize = cv2.resize(img_copy, size, interpolation=cv2.INTER_NEAREST)
+    frame_gb = cv2.GaussianBlur(frame_resize, (3, 3), 3)         
+    centroid_x_sum = 0
+    weight_sum = 0
+    center_ = []
+    n = 0
 
-    if not __isRunning: # Check whether the gameplay is turned on, if not, return to the original image
+    # Split the image into three parts: upper, middle and lower. This will make the processing faster and more accurate.
+    for r in roi:
+        roi_h = roi_h_list[n]
+        n += 1       
+        blobs = frame_gb[r[0]:r[1], r[2]:r[3]]
+        frame_lab = cv2.cvtColor(blobs, cv2.COLOR_BGR2LAB)  # Convert the image to LAB space
+        area_max = 0
+        areaMaxContour = 0
+        for i in lab_data:
+            if i in __target_color:
+                detect_color = i
+
+                # TODO create frame mask using cv2.inRange () function to perform bitwise operations on the original image
+                frame_mask = cv2.inRange(frame_lab, 
+                (lab_data[i]['min'][0], lab_data[i]['min'][1],lab_data[i]['min'][2]),
+                (lab_data[i]['max'][0], lab_data[i]['max'][1],lab_data[i]['max'][2]))
+
+                eroded = cv2.erode(frame_mask, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))  #corrosion
+                dilated = cv2.dilate(eroded, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))) #Expansion
+
+        cnts = cv2.findContours(dilated , cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)[-2]# Find all contours
+        cnt_large, area = getAreaMaxContour(cnts)# Find the contour with the largest area
+        if cnt_large is not None:#If the contour is not empty
+            rect = cv2.minAreaRect(cnt_large)#Minimum enclosing rectangle
+            box = np.int0(cv2.boxPoints(rect))#The four vertices of the minimum enclosing rectangle
+            for i in range(4):
+                box[i, 1] = box[i, 1] + (n - 1)*roi_h + roi[0][0]
+                box[i, 1] = int(Misc.map(box[i, 1], 0, size[1], 0, img_h))
+            for i in range(4):                
+                box[i, 0] = int(Misc.map(box[i, 0], 0, size[0], 0, img_w))
+
+            cv2.drawContours(img, [box], -1, (0,0,255,255), 2)#Draw a rectangle consisting of four points
+        
+            #Get the diagonal points of the rectangle
+            pt1_x, pt1_y = box[0, 0], box[0, 1]
+            pt3_x, pt3_y = box[2, 0], box[2, 1]            
+            center_x, center_y = (pt1_x + pt3_x) / 2, (pt1_y + pt3_y) / 2#Center point       
+            cv2.circle(img, (int(center_x), int(center_y)), 5, (0,0,255), -1)# Draw the center point         
+            center_.append([center_x, center_y])                        
+            #Sum the top, middle and bottom center points according to different weights
+            centroid_x_sum += center_x * r[4]
+            weight_sum += r[4]
+    if weight_sum != 0:
+        #Find the final center point
+        line_centerx = int(centroid_x_sum / weight_sum)
+        cv2.circle(img, (line_centerx, int(center_y)), 10, (0,255,255), -1)# Draw the center point
+    else:
+        line_centerx = -1
+    return img
+
+
+
+
+def run(img, __target_color):
+    global __isRunning
+    global stopMotor
+    global distance_data
+    global obstacle
+    global distance
+
+
+    # Ultrasonic sensor measurements
+    dist = HWSONAR.getDistance() / 10.0
+
+    if __isRunning:
+        
+        distance_data.append(dist)
+
+        if len(distance_data) > 5:
+            distance_data.pop(0)
+
+        distance = np.mean(distance_data)
+
+        # TODO 4. Using measured distance value, write code to stop motors and change obstacle flag to true when obstacle is within certain threshold
+        if distance <= Threshold:
+            obstacle = True
+        
+
+        time.sleep(0.03)
+
+        img = line_tracking(img,__target_color)
+        cv2.imshow("Display window", img)
         return img
 
 
-    frame_resize = cv2.resize(img_copy, size, interpolation=cv2.INTER_NEAREST)
+    
 
-    # TODO 2, using cv2.findContours(), cv2.cvtColor(), cv2.GaussianBlur() find the contours
-    # /.....enter code here...../ (use the code from section 1 of this project if completed beforehand)
+    
 
-    blur = cv2.GaussianBlur(img, (5,5), 0)
-    imgray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
-    ret, thresh = cv2.threshold(imgray, 127, 255, cv2.THRESH_BINARY_INV)
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    cnt_large, area = getAreaMaxContour(contours)
-
-    if cnt_large is not None and start_pick_up is not True:
-        approx = cv2.approxPolyDP(cnt_large, 0.04*cv2.arcLength(cnt_large, True), True)
-        cv2.drawContours(img, [approx], 0, (0, 0, 0), 5)
-
-        M = cv2.moments(cnt_large)
-        if M['m00'] != 0.0:
-            x = int(M['m10']/M['m00'])
-            y = int(M['m01']/M['m00'])
-
-        shape = "unidentified"
-
-        if (count > 100):
-
-            # TODO 3, using the length of the variable approx, obtained from cv2.approxPloyDP,
-            #assign variable shape as either; shape ="triangle", shape="square" or shape="circle"
-
-            #the length of approx gives the number of sides of the shape. in the unlikely event the shape is
-            #not one of the expected shapes, let the user know
-            if len(approx) == 3:
-                shape = 'triangle'
-            elif len(approx) == 4:
-                shape = 'square'
-            elif len(approx) >= 6:
-                shape = 'circle'
-            else:
-                print('unidentified shape :c')
-
-        #fixed indentation as suggested
-        if shape in __target_shape:
-            detect_shape = shape
-            start_pick_up = True
-        else:
-            shape = 'unidentified'
-            start_pick_up = False
-
-        cv2.drawContours(img, [approx], 0, (0, 255, 0), 5)
-
-        # increase count
-        count = count + 1
-        print("count:\n")
-        print(count)
-
-
-
-    cv2.putText(img, "Shape: " + detect_shape, (10, img.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 2)
-    print("detected shape:\n")
-    print(detect_shape)
-    return img
 
 if __name__ == '__main__':
+    
     init()
     start()
-    __target_shape = ('circle', 'triangle', 'square')
+    
+    signal.signal(signal.SIGINT, Stop)
     cap = cv2.VideoCapture(-1)
-    while True:
+    __target_color = ('green',)
+    while __isRunning:
         ret, img = cap.read()
         if ret:
             frame = img.copy()
-            Frame = run(frame)
+            Frame = run(frame, __target_color)  
             frame_resize = cv2.resize(Frame, (320, 240))
-            cv2.imshow('frame', frame_resize)
+            # cv2.imshow('frame', frame_resize)
             key = cv2.waitKey(1)
             if key == 27:
                 break
