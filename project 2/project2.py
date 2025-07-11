@@ -47,7 +47,7 @@ def getAreaMaxContour(contours):
     return area_max_contour, contour_area_max  # Return the largest contour
 
 # The closing angle of the gripper when gripping
-servo1 = 1500
+servo1 = 100
 
 # Initial position
 def initMove():
@@ -162,7 +162,7 @@ def move():
         'circle':   (15, 10, 2),
         'triangle': (15, 10,  2),
         'square':  (-15, 10, 2),
-        'pick': (0, 18, 0)
+        'pick': (0, 18, 1)
     }
 
     while True:
@@ -176,7 +176,7 @@ def move():
                 if not __isRunning:  # Check whether to stop playing
                     continue
                 Board.setPWMServoPulse(1, 2000, 500) # Open claws
-                time.sleep(1)
+                time.sleep(0.25)
                 if not __isRunning:
                     continue
 
@@ -193,12 +193,13 @@ def move():
                 if unreachable:
                     result = AK.setPitchRangeMoving((coordinate['pick'][0], coordinate['pick'][1], coordinate['pick'][2]), -25, 0, 25) # Run to above the coordinates
 
-                Board.setPWMServoPulse(1, 1000, 500) # Close paw
-                time.sleep(1.5)
+                Board.setPWMServoPulse(1, servo1, 500) # Close paw
+                time.sleep(0.25)
 
                     # Motion in between picks, elevate arm
                 AK.setPitchRangeMoving((0, 7, 18), -90, -90, 90, 1500)
-                time.sleep(1.5)
+                time.sleep(0.25)
+                Board.setPWMServoPulse(1, servo1, 500) # Close paw
 
 
                 if not __isRunning:
@@ -215,7 +216,7 @@ def move():
                     # 2nd trial
                     if unreachable:
                         result = AK.setPitchRangeMoving((coordinate['circle'][0], coordinate['circle'][1], coordinate['circle'][2]), -180, -90, 180)
-                    time.sleep(1)
+                    time.sleep(0.25)
 
                 elif detect_shape == 'triangle':
 
@@ -229,7 +230,7 @@ def move():
                     # 2nd trial
                     if unreachable:
                         result = AK.setPitchRangeMoving((coordinate['triangle'][0], coordinate['triangle'][1], coordinate['triangle'][2]), -180, -90, 180)
-                    time.sleep(1)
+                    time.sleep(0.25)
 
                 elif detect_shape == 'square':
 
@@ -244,7 +245,7 @@ def move():
                     if unreachable:
                         result = AK.setPitchRangeMoving((coordinate['square'][0], coordinate['square'][1], coordinate['square'][2]), -180, -90, 180)
 
-                    time.sleep(1)
+                    time.sleep(0.25)
 
                 detect_shape = 'unidentified'
                 start_pick_up = False
@@ -285,10 +286,12 @@ def run(img):
     img_copy = img.copy()
     img_h, img_w = img.shape[:2]
 
-    print(inMotion)
-    if not __isRunning or inMotion: # Check whether the gameplay is turned on, if not, return to the original image
+    if not __isRunning: # Check whether the gameplay is turned on, if not, return to the original image
         return img
 
+    if inMotion:
+        cv2.putText(img, "Shape: " + detect_shape, (10, img.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 2)
+        return img
 
     frame_resize = cv2.resize(img_copy, size, interpolation=cv2.INTER_NEAREST)
 
@@ -313,7 +316,7 @@ def run(img):
 
         shape = "unidentified"
 
-        if (count > 100):
+        if (count > 20):
 
             # TODO 3, using the length of the variable approx, obtained from cv2.approxPloyDP,
             #assign variable shape as either; shape ="triangle", shape="square" or shape="circle"
@@ -324,10 +327,10 @@ def run(img):
                 shape = 'triangle'
             elif len(approx) == 4:
                 shape = 'square'
-            elif len(approx) >= 6:
+            elif len(approx) >= 5:
                 shape = 'circle'
             else:
-                print('unidentified shape :c')
+                print('no shape :c')
 
         #fixed indentation as suggested
         if shape in __target_shape:
@@ -361,8 +364,7 @@ if __name__ == '__main__':
         if ret:
             frame = img.copy()
             Frame = run(frame)
-            frame_resize = cv2.resize(Frame, (320, 240))
-            cv2.imshow('frame', frame_resize)
+            cv2.imshow('frame', Frame)
             key = cv2.waitKey(1)
             if key == 27:
                 break
