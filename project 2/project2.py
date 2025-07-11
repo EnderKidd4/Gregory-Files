@@ -310,8 +310,8 @@ def run(img):
 
             # TODO 3, using the length of the variable approx, obtained from cv2.approxPloyDP, 
             #assign variable shape as either; shape ="triangle", shape="square" or shape="circle"
-            
-            #the length of approx gives the number of sides of the shape. in the unlikely event the shape is
+        
+            #the length of approx gives the number of vertices of the shape. in the unlikely event the shape is
             #not one of the expected shapes, let the user know
             if len(approx) == 3:
                 shape = 'triangle'
