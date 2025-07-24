@@ -47,7 +47,7 @@ def init_detect_left():
     Board.setPWMServoPulse(4, 2300, 500)
     time.sleep(1)
     Board.setPWMServoPulse(6, 2500, 500)
-    time.sleep(3)
+    time.sleep(5)
 
     search_left = True
 
@@ -61,7 +61,7 @@ def init_detect_right():
     Board.setPWMServoPulse(4, 2300, 500)
     time.sleep(1)
     Board.setPWMServoPulse(6, 500, 500)
-    time.sleep(3)
+    time.sleep(5)
 
     search_right = True
 
@@ -125,6 +125,7 @@ def move():
                     pick_up = True  #go back to pick up position
                     
                 else:
+                    object_left = ""
                     print("now going Right\n")
                     init_detect_right()
 
@@ -147,6 +148,7 @@ def move():
                     pick_up = True  #go back to pick up position
 
                 else:
+                    object_right = ""
                     print("now going Left\n")
                     init_detect_left()
 
