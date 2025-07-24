@@ -47,6 +47,7 @@ def init_detect_left():
     Board.setPWMServoPulse(4, 2300, 500)
     time.sleep(1)
     Board.setPWMServoPulse(6, 2500, 500)
+    time.sleep(3)
 
     search_left = True
 
@@ -56,9 +57,9 @@ def init_detect_right():
     Board.setPWMServoPulse(5, 1500, 300)
     time.sleep(1)
     Board.setPWMServoPulse(3, 500, 500)
-    time.sleep(0.5)
+    time.sleep(1)
     Board.setPWMServoPulse(4, 2300, 500)
-    time.sleep(0.5)
+    time.sleep(1)
     Board.setPWMServoPulse(6, 500, 500)
     time.sleep(3)
 
