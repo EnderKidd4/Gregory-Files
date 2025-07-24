@@ -15,14 +15,11 @@ import HiwonderSDK.mecanum as mecanum
 chassis = mecanum.MecanumChassis()
 start = True
 pick_up = True
-place_down_left = False
-place_down_right = False
 search_left = False
 search_right = False
 stop_threads = False
-object_left = "none"
-object_right = "none"
 detected_object = "none"
+target_object = "dog"
 
 ik = IK('arm')
 AK = ArmIK()
@@ -77,9 +74,8 @@ def init_move():
     Board.setPWMServoPulse(6, 1500, 500)
 
 def move():
-    global pick_up, place_down_left, place_down_right, detected_object
-    global search_left, search_right, start, stop_threads, object_left, object_right
-
+    global pick_up, detected_object
+    global search_left, search_right, start, stop_threads
     coordinate = {
         # TODO set coordinates appropriately depending on placement of object
         #using the coordinates from project 2 as a starting point:
@@ -92,10 +88,7 @@ def move():
 
     while not stop_threads:
         while True:
-            object_left = ""
-            object_right = ""
-            place_down_right = False
-            place_down_left = False
+            detected_object = "none"
             if pick_up:
                 print("IN Pick-Up\n")
                 Board.setPWMServoPulse(1, 2000, 500)  # Open claws
@@ -112,10 +105,9 @@ def move():
                 init_detect_left()
 
             if search_left:
-                object_left = detected_object
-                print("Object_left: \n",object_left)
+                print("Object_left: \n",detected_object)
                 print("In Search Left\n")
-                if place_down_left:
+                if detected_object == target_object:
                     print("IN PLACE DOWN LEFT\n")
 
                     # TODO Implement placing left mechanism, Hint see if "pick_up"
@@ -135,10 +127,9 @@ def move():
 
 
             if search_right:
-                object_right = detected_object
-                print("Object_right: \n",object_right)
+                print("Object_right: \n",detected_object)
                 print("In Search Right\n")
-                if place_down_right:
+                if detected_object == target_object:
                     print("IN PLACE DOWN RIGHT\n")
 
                     # TODO Implement placing right mechanism, , Hint see if "pick_up"
@@ -179,17 +170,7 @@ pipe_thread.setDaemon(True)
 pipe_thread.start()
 
 def main():
-    global start, place_down_left, place_down_right, stop_threads, object_left, object_right, detected_object
-
-    # TODO explain working of this function
-    target_object = "dog"
-    while not stop_threads:
-        if object_right == target_object:
-            place_down_right = True
-            place_down_left = False
-        elif object_left == target_object:
-            place_down_left = True
-            place_down_right = False
+    print("Program start, looking for ", target_object)
 
 signal.signal(signal.SIGINT, stop)
 
