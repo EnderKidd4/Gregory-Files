@@ -157,7 +157,7 @@ def move():
     #Set appropriately as well the coordinates for where the robot should pick the object
 
 
-    # Place coordinates
+    # Place coordinates for inverse Kinematics calculations
     coordinate = {
         'circle':   (15, 10, 2),
         'triangle': (15, 10,  2),
@@ -322,7 +322,7 @@ def run(img):
             #assign variable shape as either; shape ="triangle", shape="square" or shape="circle"
 
             #the length of approx gives the number of sides of the shape. in the unlikely event the shape is
-            #not one of the expected shapes, let the user know
+            #not one of the expected shapes, let the user know there is no shape detected
             if len(approx) == 3:
                 shape = 'triangle'
             elif len(approx) == 4:
