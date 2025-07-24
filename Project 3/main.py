@@ -118,11 +118,10 @@ def move():
                     #changed flags to true or false to begin search to the right
                     AK.setPitchRangeMoving(coordinate['place_left'], 90, -90, 90)
                     time.sleep(3)
-                    Board.setPWMServoPulse(1, 1000, 500)  # Close paw
+                    Board.setPWMServoPulse(1, 2500, 500)  # open paw
                     time.sleep(0.5)
                     search_left = False  # turn off search_left flag
-                    #search_right = True  #begin searching right?
-                    #init_detect_left()
+                    pick_up = True  #go back to pick up position
                     
                 else:
                     print("now going Right\n")
@@ -141,11 +140,10 @@ def move():
                     #and search_right
                     AK.setPitchRangeMoving(coordinate['place_right'], 90, -90, 90)
                     time.sleep(3)
-                    Board.setPWMServoPulse(1, 1000, 500)  # Close paw
+                    Board.setPWMServoPulse(1, 2500, 500)  # open paw
                     time.sleep(0.5)
                     search_right = False  # turn off searching flag
-                    #search_right = True
-                    #init_detect_right()
+                    pick_up = True  #go back to pick up position
 
                 else:
                     print("now going Left\n")
