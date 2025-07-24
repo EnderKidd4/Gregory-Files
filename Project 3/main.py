@@ -112,7 +112,6 @@ def move():
 
                     # TODO Implement placing left mechanism, Hint see if "pick_up"
                     #code based on if"pick_up", changed coordinate to place_left
-                    #changed flags to true or false to begin search to the right
                     AK.setPitchRangeMoving(coordinate['place_left'], 90, -90, 90)
                     time.sleep(0.5)
                     Board.setPWMServoPulse(1, 2500, 500)  # open paw
