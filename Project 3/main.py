@@ -170,7 +170,7 @@ pipe_thread.setDaemon(True)
 pipe_thread.start()
 
 def main():
-    print("Program start, looking for ", target_object)
+    print("Program start, looking for", target_object)
 
 signal.signal(signal.SIGINT, stop)
 
