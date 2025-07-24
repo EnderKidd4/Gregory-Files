@@ -136,12 +136,13 @@ def move():
 
                     # TODO Implement placing right mechanism, , Hint see if "pick_up"
                     #code based on if"pick_up", changed coordinate to place_right and detect right
+                    #and search_right
                     AK.setPitchRangeMoving(coordinate['place_right'], 90, -90, 90)
                     time.sleep(3)
                     Board.setPWMServoPulse(1, 1000, 500)  # Close paw
                     time.sleep(0.5)
                     pick_up = False  # turn off pick_up flag
-                    search_left = True
+                    search_right = True
                     init_detect_right()
 
                 else:
