@@ -121,7 +121,7 @@ def move():
                     pick_up = True  #go back to pick up position
                     
                 else:
-                   
+
                     print("now going Right\n")
                     init_detect_right()
 
@@ -152,7 +152,9 @@ def read_pipe():
     global detected_object, stop_threads
     while not stop_threads:
         with open(pipe_path, 'r') as pipe:
-            detected_object = pipe.readline().strip()
+            raw_data = pipe.readline()
+            print("raw_data:",raw_data)
+            detected_object = raw_data.strip()
 
 th = threading.Thread(target=move)
 th.setDaemon(True)
