@@ -93,6 +93,8 @@ def move():
     while not stop_threads:
         while True:
             if pick_up:
+                place_down_right = False
+                place_down_left = False
                 print("IN Pick-Up\n")
                 Board.setPWMServoPulse(1, 2000, 500)  # Open claws
                 time.sleep(1)
