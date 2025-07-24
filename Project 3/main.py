@@ -92,9 +92,11 @@ def move():
 
     while not stop_threads:
         while True:
+            object_left = ""
+            object_right = ""
+            place_down_right = False
+            place_down_left = False
             if pick_up:
-                place_down_right = False
-                place_down_left = False
                 print("IN Pick-Up\n")
                 Board.setPWMServoPulse(1, 2000, 500)  # Open claws
                 time.sleep(1)
@@ -127,7 +129,7 @@ def move():
                     pick_up = True  #go back to pick up position
                     
                 else:
-                    object_left = ""
+                   
                     print("now going Right\n")
                     init_detect_right()
 
@@ -150,7 +152,7 @@ def move():
                     pick_up = True  #go back to pick up position
 
                 else:
-                    object_right = ""
+                   
                     print("now going Left\n")
                     init_detect_left()
 
@@ -184,8 +186,10 @@ def main():
     while not stop_threads:
         if object_right == target_object:
             place_down_right = True
+            place_down_left = False
         elif object_left == target_object:
             place_down_left = True
+            place_down_right = False
 
 signal.signal(signal.SIGINT, stop)
 
