@@ -153,7 +153,7 @@ def read_pipe():
     while not stop_threads:
         with open(pipe_path, 'r') as pipe:
             raw_data = pipe.readline()
-            print("raw_data:",raw_data)
+            # print("raw_data:",raw_data)
             detected_object = raw_data.strip()
 
 th = threading.Thread(target=move)
