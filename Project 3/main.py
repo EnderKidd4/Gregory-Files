@@ -81,9 +81,10 @@ def move():
 
     coordinate = {
         # TODO set coordinates appropriately depending on placement of object
-        'place_left': (18, 0, 0),
-        'place_right': (-18, 0, 0),
-        'pick': (0, ik.l2 + ik.l4, ik.l1 - ik.l3)
+        #using the coordinates from project 2 as a starting point:
+        'place_left': (15, 10, 2),
+        'place_right': (-15, 10, 2),
+        'pick': (0, 18, 1)
     }
 
     init_move()
