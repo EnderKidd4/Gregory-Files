@@ -113,7 +113,15 @@ def move():
                     print("IN PLACE DOWN LEFT\n")
 
                     # TODO Implement placing left mechanism, Hint see if "pick_up"
-
+                    #code based on if"pick_up", changed coordinate to place_left
+                    AK.setPitchRangeMoving(coordinate['place_left'], 90, -90, 90)
+                    time.sleep(3)
+                    Board.setPWMServoPulse(1, 1000, 500)  # Close paw
+                    time.sleep(0.5)
+                    pick_up = False  # turn off pick_up flag
+                    search_left = True
+                    init_detect_left()
+                    
                 else:
                     print("now going Right\n")
                     init_detect_right()
@@ -127,6 +135,14 @@ def move():
                     print("IN PLACE DOWN RIGHT\n")
 
                     # TODO Implement placing right mechanism, , Hint see if "pick_up"
+                    #code based on if"pick_up", changed coordinate to place_right and detect right
+                    AK.setPitchRangeMoving(coordinate['place_right'], 90, -90, 90)
+                    time.sleep(3)
+                    Board.setPWMServoPulse(1, 1000, 500)  # Close paw
+                    time.sleep(0.5)
+                    pick_up = False  # turn off pick_up flag
+                    search_left = True
+                    init_detect_right()
 
                 else:
                     print("now going Left\n")
