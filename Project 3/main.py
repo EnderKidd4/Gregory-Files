@@ -88,7 +88,7 @@ def move():
 
     while not stop_threads:
         while True:
-            detected_object = "none"
+            
             if pick_up:
                 print("IN Pick-Up\n")
                 Board.setPWMServoPulse(1, 2000, 500)  # Open claws
@@ -103,6 +103,8 @@ def move():
                 pick_up = False  # turn off pick_up flag
                 search_left = True #begin searching left
                 init_detect_left()
+
+            # detected_object = "none"
 
             if search_left:
                 print("Object_left: \n",detected_object)
@@ -119,12 +121,9 @@ def move():
                     time.sleep(0.5)
                     search_left = False  # turn off search_left flag
                     pick_up = True  #go back to pick up position
-                    
                 else:
-
                     print("now going Right\n")
                     init_detect_right()
-
 
             if search_right:
                 print("Object_right: \n",detected_object)
@@ -141,9 +140,7 @@ def move():
                     time.sleep(0.5)
                     search_right = False  # turn off searching flag
                     pick_up = True  #go back to pick up position
-
                 else:
-                   
                     print("now going Left\n")
                     init_detect_left()
 
@@ -152,9 +149,10 @@ def read_pipe():
     global detected_object, stop_threads
     while not stop_threads:
         with open(pipe_path, 'r') as pipe:
-            raw_data = pipe.readline()
+            raw_data = pipe.readline().strip()
             # print("raw_data:",raw_data)
-            detected_object = raw_data.strip()
+            if raw_data == "dog" or raw_data == "cat":
+                detected_object = raw_data
 
 th = threading.Thread(target=move)
 th.setDaemon(True)
